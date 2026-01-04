@@ -1,6 +1,8 @@
 <img width="819" height="319" alt="image" src="https://github.com/user-attachments/assets/c94e073f-f9d5-48d2-b497-6ce19c23919b" />
 
+
 def maximalCrosses(n, A):
+
     L  = [[0]*n for _ in range(n)]
     R  = [[0]*n for _ in range(n)]
     U  = [[0]*n for _ in range(n)]
