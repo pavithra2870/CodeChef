@@ -1,10 +1,12 @@
-Divide an array into A continuous parts such that the maximum sum of any part is minimized. Then multiply that max length by B.
+# Divide an array into A continuous parts such that the maximum sum of any part is minimized. Then multiply that max length by B.
 
 - Minimize the maximum workload when splitting into A contiguous groups.
 - we use binary search to find wat is the minimum upper limit of no of boards a single painter paints
 - canPaint checks if <=A painters will be needed to paint the boards if max boards a painter can paint is x
 
+
 def canPaint(C, A, maxLen):
+
     painters = 1
     curr = 0
     for board in C:
@@ -17,7 +19,9 @@ def canPaint(C, A, maxLen):
                 return False
     return True
 
+
 def minTime(A, B, C):
+
     MOD = 10000003
     low = max(C)
     high = sum(C)
