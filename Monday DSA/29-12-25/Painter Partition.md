@@ -1,5 +1,5 @@
-# Divide an array into A continuous parts such that the maximum sum of any part is minimized. Then multiply that max length by B.
-
+# Painter Partition Problem
+- Divide an array into A continuous parts such that the maximum sum of any part is minimized. Then multiply that max length by B.
 - Minimize the maximum workload when splitting into A contiguous groups.
 - we use binary search to find wat is the minimum upper limit of no of boards a single painter paints
 - canPaint checks if <=A painters will be needed to paint the boards if max boards a painter can paint is x
