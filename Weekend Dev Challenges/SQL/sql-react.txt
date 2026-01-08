@@ -1,0 +1,558 @@
+db.js
+import initSqlJs from "sql.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+let db;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export async function initDB() {
+  const SQL = await initSqlJs({
+    locateFile: (file) =>
+      path.resolve(__dirname, "../node_modules/sql.js/dist", file),
+  });
+
+  db = new SQL.Database();
+
+  // ===== Create tables =====
+  db.run(`
+    CREATE TABLE Candidates (
+      candidate_id INTEGER PRIMARY KEY,
+      name TEXT,
+      email TEXT
+    );
+
+    CREATE TABLE JobRoles (
+      role_id INTEGER PRIMARY KEY,
+      role_name TEXT
+    );
+
+    CREATE TABLE Applications (
+      application_id INTEGER PRIMARY KEY,
+      candidate_id INTEGER,
+      role_id INTEGER,
+      status TEXT
+    );
+  `);
+
+  // ===== Candidates =====
+  const candidates = [
+    [1, "Bob", "bob123@gmail.com"],
+    [2, "Rohit", "rohit456@gmail.com"],
+    [3, "Ankit", "ankit06@gmail.com"],
+    [4, "Alice", "alice01@gmail.com"],
+    [5, "Arjun", "arjun23@gmail.com"],
+    [6, "Neha", "neha45@gmail.com"],
+    [7, "Abhay", "abhay61@gmail.com"],
+    [8, "Sagar", "sagar26@gmail.com"],
+    [9, "Vikram", "vikram542@gmail.com"],
+    [10, "Charlie", "charlie444@gmail.com"],
+  ];
+
+  const insertCandidate = db.prepare(
+    `INSERT INTO Candidates (candidate_id, name, email) VALUES (?, ?, ?)`
+  );
+  candidates.forEach(row => insertCandidate.run(row));
+  insertCandidate.free();
+
+  // ===== Job roles =====
+  const roles = [
+    [1, "Backend Developer"],
+    [2, "Frontend Developer"],
+    [3, "Data Analyst"],
+    [4, "QA Engineer"],
+  ];
+
+  const insertRole = db.prepare(
+    `INSERT INTO JobRoles (role_id, role_name) VALUES (?, ?)`
+  );
+  roles.forEach(row => insertRole.run(row));
+  insertRole.free();
+
+  // ===== Applications =====
+  const applications = [
+    [1, 1, 1, "Hired"],
+    [2, 1, 2, "Rejected"],
+
+    [3, 2, 1, "Rejected"],
+    [4, 2, 1, "Rejected"],
+    [5, 2, 3, "Applied"],
+
+    [6, 3, 3, "Hired"],
+    [7, 3, 1, "Applied"],
+
+    [8, 4, 2, "Hired"],
+    [9, 4, 3, "Rejected"],
+
+    [10, 5, 4, "Rejected"],
+    [11, 5, 3, "Applied"],
+
+    [12, 6, 2, "Applied"],
+    [13, 6, 1, "Rejected"],
+
+    [14, 7, 1, "Applied"],
+    [15, 7, 2, "Applied"],
+
+    [16, 8, 3, "Hired"],
+    [17, 8, 4, "Rejected"],
+
+    [18, 9, 1, "Rejected"],
+    [19, 9, 1, "Rejected"],
+
+    [20, 10, 2, "Applied"],
+  ];
+
+  const insertApplication = db.prepare(
+    `INSERT INTO Applications (application_id, candidate_id, role_id, status)
+     VALUES (?, ?, ?, ?)`
+  );
+
+  applications.forEach(row => insertApplication.run(row));
+  insertApplication.free();
+
+  console.log("Database Initialized");
+}
+
+export function query(sql) {
+  const r = db.exec(sql);
+  return r.length ? r[0] : { columns: [], values: [] };
+}
+
+
+server.js
+import express from "express";
+import cors from "cors";
+import routes from "./routes.js";
+import { initDB } from "./db.js";
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+await initDB();
+
+app.use("/api", routes);
+
+const PORT = 8080;
+const server = app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT}`)
+);
+
+export default server;
+
+
+routes.js
+import express from "express";
+const router = express.Router();
+import { query } from "./db.js";
+
+// Helper function to convert SQL.js result into clean JSON
+const format = (res) =>
+  res.values.map(row =>
+    Object.fromEntries(row.map((v, i) => [res.columns[i], v]))
+  );
+
+/* === BASE TABLES === */
+
+// Fetch all candidates
+router.get("/candidates", (req, res) => {
+  // TODO:
+  // Select all rows from Candidates table
+  // then sort by candidate_id
+  const sql = `
+   select candidate_id, name, email from Candidates order by candidate_id asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Fetch all job roles
+router.get("/job-roles", (req, res) => {
+  // TODO:
+  // Select all rows from JobRoles table
+  // then sort by role_id
+  const sql = `
+  select * from JobRoles order by role_id asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Fetch all applications
+router.get("/applications", (req, res) => {
+  // TODO:
+  // Select all rows from Applications table
+  // then sort by application_id
+  const sql = `
+   select * from Applications order by application_id asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+/* === ANALYTICS QUERIES === */
+
+// Candidates whose names start with 'A'
+router.get("/candidates-start-a", (req, res) => {
+  // TODO:
+  // Find candidates whose name starts with letter 'A'
+  // then sort results by candidate_id
+  const sql = `
+    select * from Candidates where name like 'A%' order by candidate_id;
+
+  `;
+  res.json(format(query(sql)));
+});
+
+// Number of applications per job role
+router.get("/applications-per-role", (req, res) => {
+  // TODO:
+  // Count total applications per role
+  // Also include roles with zero applications
+  // then sort by total applications (descending), then role name (ascending)
+  const sql = `
+  select j.role_name, count(a.application_id) as total_applications
+  from JobRoles j left join Applications a on j.role_id=a.role_id 
+  group by j.role_id, j.role_name order by count(a.application_id) desc, 
+  j.role_name asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Candidates rejected more than once
+router.get("/rejected-more-than-once", (req, res) => {
+  // TODO:
+  // Count rejected applications per candidate
+  // Include only candidates rejected more than once
+  // then sort by rejection count (descending), then candidate name (ascending)
+  const sql = `
+  select name, count(*) as rejection_count from Candidates c join Applications a on 
+  a.candidate_id=c.candidate_id where status="Rejected" group by c.candidate_id, c.name
+  having count(*)>1 order by count(*) desc, c.name asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Job roles with the most hires
+router.get("/roles-most-hires", (req, res) => {
+  // TODO:
+  // Count hired applications per role
+  // then sort by total hires (descending), then role name (ascending)
+  const sql = `
+  select j.role_name, count(a.application_id) as total_hires from JobRoles j join Applications a 
+  on a.role_id=j.role_id and a.status='Hired' group by j.role_name, j.role_id 
+  order by count(a.status) desc, j.role_name asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Candidates who applied to multiple roles
+router.get("/candidates-multiple-roles", (req, res) => {
+  // TODO:
+  // Count distinct roles applied by each candidate
+  // Include only candidates who applied to more than one role
+  // then sort by number of roles (descending), then candidate name (ascending)
+  const sql = `
+    select c.name, count(distinct a.role_id) as roles_applied 
+    from Candidates c join Applications a
+     on a.candidate_id=c.candidate_id
+     group by c.candidate_id,c.name
+     having count(distinct a.role_id)>1
+     order by count(distinct a.role_id) desc, c.name asc;
+  `;
+  res.json(format(query(sql)));
+});
+export default router;
+
+app.js
+import { useEffect, useState } from "react";
+import "./App.css";
+
+function getBackendDomain() {
+  const domain = window.location.hostname || window.currentURL;
+  const protocolPrefix = "https://";
+  const firstDotIndex = domain.indexOf(".");
+  const subdomain = domain.substring(0, firstDotIndex);
+  const restOfDomain = domain.substring(firstDotIndex);
+  return protocolPrefix + subdomain + "-backend" + restOfDomain;
+}
+
+const backendDomain = getBackendDomain();
+const API_BASE = `${backendDomain}/api`;
+
+function App() {
+  const [candidates, setCandidates] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [applications, setApplications] = useState([]);
+
+  const [data, setData] = useState([]);
+  const [view, setView] = useState("base");
+  const [title, setTitle] = useState("Base Tables");
+  const [loading, setLoading] = useState(false);
+
+  // Load base tables on first render
+  useEffect(() => {
+    fetchBaseTables();
+  }, []);
+
+  const fetchBaseTables = async () => {
+    try {
+      setLoading(true);
+      setView("base");
+      setTitle("Base Tables (Raw Hiring Data)");
+
+      const [cRes, rRes, aRes] = await Promise.all([
+        fetch(`${API_BASE}/candidates`),
+        fetch(`${API_BASE}/job-roles`),
+        fetch(`${API_BASE}/applications`)
+      ]);
+
+      setCandidates(await cRes.json());
+      setRoles(await rRes.json());
+      setApplications(await aRes.json());
+    } catch (err) {
+      console.error(err);
+      setCandidates([]);
+      setRoles([]);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFilteredData = async (endpoint, heading) => {
+    try {
+      setLoading(true);
+      setView("filtered");
+      setTitle(heading);
+
+      const res = await fetch(`${API_BASE}/${endpoint}`);
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      console.error(err);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderTable = (tableData) => {
+    if (!tableData || tableData.length === 0) {
+      return <div className="empty">No data available</div>;
+    }
+
+    return (
+      <div className="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              {Object.keys(tableData[0]).map((key) => (
+                <th key={key}>{key}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tableData.map((row, idx) => (
+              <tr key={idx}>
+                {Object.values(row).map((val, i) => (
+                  <td key={i}>{val ?? "NULL"}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  return (
+    <div className="app">
+      <header className="header">
+        <h1>Smart Hiring Analytics System</h1>
+        <p>Recruitment Data & Application Insights</p>
+      </header>
+
+      <div className="controls">
+        <button onClick={fetchBaseTables}>Base Tables</button>
+
+        <button onClick={() =>
+          fetchFilteredData("candidates-start-a", "Candidates Whose Names Start With 'A'")
+        }>
+          Names Start With A
+        </button>
+
+        <button onClick={() =>
+          fetchFilteredData("applications-per-role", "Applications Per Job Role")
+        }>
+          Applications per Role
+        </button>
+
+        <button onClick={() =>
+          fetchFilteredData("rejected-more-than-once", "Candidates Rejected More Than Once")
+        }>
+          Multiple Rejections
+        </button>
+
+        <button onClick={() =>
+          fetchFilteredData("roles-most-hires", "Job Roles With Most Hires")
+        }>
+          Most Hires
+        </button>
+
+        <button onClick={() =>
+          fetchFilteredData("candidates-multiple-roles", "Candidates Applied to Multiple Roles")
+        }>
+          Multiple Roles
+        </button>
+      </div>
+
+      <section className="result">
+        <h2>{title}</h2>
+
+        {loading ? (
+          <div className="loader">Loading data...</div>
+        ) : view === "base" ? (
+          <>
+            <h3 className="table-title">Candidates</h3>
+            {renderTable(candidates)}
+
+            <h3 className="table-title">Job Roles</h3>
+            {renderTable(roles)}
+
+            <h3 className="table-title">Applications</h3>
+            {renderTable(applications)}
+          </>
+        ) : (
+          renderTable(data)
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default App;
+
+import express from "express";
+const router = express.Router();
+import { query } from "./db.js";
+
+// Helper function to convert SQL.js result into clean JSON
+const format = (res) =>
+  res.values.map(row =>
+    Object.fromEntries(row.map((v, i) => [res.columns[i], v]))
+  );
+
+/* === BASE TABLES === */
+
+// Fetch all orders
+router.get("/orders", (req, res) => {
+  // TODO:
+  // Select all rows from Orders table
+  // then sort by order_time
+  const sql = `
+  select order_id,customer_id,restaurant_id,partner_id,order_time,delivery_time,status
+  from Orders order by order_time asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Fetch all restaurants
+router.get("/restaurants", (req, res) => {
+  // TODO:
+  // Select all rows from Restaurants table
+  // then sort by restaurant_id
+  const sql = `
+    select * from Restaurants order by restaurant_id asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Fetch all delivery partners
+router.get("/delivery-partners", (req, res) => {
+  // TODO:
+  // Select all rows from DeliveryPartners table
+  // then sort by partner_id
+  const sql = ` select * from DeliveryPartners order by partner_id asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+/* === ANALYTICS QUERIES === */
+
+// Average delivery time per restaurant
+router.get("/avg-delivery-time", (req, res) => {
+  // TODO:
+  // Calculate average delivery time per restaurant
+  // Include only delivered orders
+  // then sort by average delivery time (ascending)
+  const sql = `
+  select r.name as restaurant_name, round(avg(o.delivery_time),2) as avg_delivery_time from
+  Restaurants r join Orders o on r.restaurant_id=o.restaurant_id and o.status="Delivered"
+  group by r.restaurant_id, r.name 
+  order by round(avg(o.delivery_time),2);
+  `;
+  res.json(format(query(sql)));
+});
+
+// Restaurants with highest number of cancellations
+router.get("/most-cancellations", (req, res) => {
+  // TODO:
+  // Count cancelled orders per restaurant
+  // then sort by cancellation count (descending)
+  // Use restaurant name as secondary sort (ascending)
+  const sql = `
+    select r.name as restaurant_name, count(*) as cancellation_count
+    from Restaurants r join Orders o on r.restaurant_id=o.restaurant_id and o.status="Cancelled"
+    group by r.restaurant_id, r.name
+    order by count(*) desc, r.name asc;
+    `;
+  res.json(format(query(sql)));
+});
+
+// Rank restaurants by delivery success ratio
+router.get("/delivery-success-ratio", (req, res) => {
+  // TODO:
+  // For each restaurant:
+  // Calculate success ratio = delivered orders / total orders
+  // Round the ratio to 2 decimal places
+  // then sort by success ratio (descending), then restaurant name (ascending)
+  const sql = `
+  select r.name as restaurant_name, round(cast(sum(case when o.status="Delivered" then 1 else 0 end) 
+  as float)/count(o.order_id),2) as success_ratio from Restaurants r left join Orders o on
+  o.restaurant_id=r.restaurant_id group by r.restaurant_id, r.name 
+  order by success_ratio desc, r.name asc;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Time gap between consecutive orders by same customer
+router.get("/order-gaps", (req, res) => {
+  // TODO:
+  // For each customer:
+  // Use a window function to find previous order time
+  // then order results by customer_id and order_time
+  const sql = `
+  select customer_id, order_time, lag(order_time) over(partition by customer_id 
+  order by order_time) as previous_order_time
+  from Orders order by customer_id,order_time;
+  `;
+  res.json(format(query(sql)));
+});
+
+// Busiest hours of the day
+router.get("/busiest-hours", (req, res) => {
+  // TODO:
+  // Extract hour range from order_time (24-hour format and hour range e.g., "09-10") 
+  // Count number of orders per hour range
+  // then sort by total orders (descending), then hour range (ascending)
+  const sql = `
+SELECT printf('%02d-%02d', hour, hour + 1) AS hour_range, COUNT(*) AS total_orders
+FROM (SELECT CAST(strftime('%H', order_time) AS INTEGER) AS hour FROM Orders
+)
+GROUP BY hour
+ORDER BY total_orders DESC, hour ASC;
+  `;
+  res.json(format(query(sql)));
+});
+
+export default router;
