@@ -4,7 +4,7 @@
 - np.sum(weekly_matrix) and np.mean(weekly_matrix) automatically flattens the matrix and computes sum and mean
 - np.argmax(steps) and np.argmin(steps) finds indices of max and min values
 - np.sort(steps) sorts
-``` python[]
+``` python
 import numpy as np
 # 1. Generate Step Data
 def generate_step_data():
