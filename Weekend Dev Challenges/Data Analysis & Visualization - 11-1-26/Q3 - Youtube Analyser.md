@@ -1,9 +1,9 @@
-- plt.figure(figsize=(10,6)) to set figure size
-- plt.xlim((0,1.1*max(df["views"]))) 110% means 1.1
-- np.arange(len(titles)) creates an array of nums
+- `plt.figure(figsize=(10,6))` to set figure size
+- `plt.xlim((0,1.1*max(df["views"])))` 110% means 1.1
+- `np.arange(len(titles))` creates an array of nums
 - The Shift (x - width/2): By subtracting or adding half the width, you ensure the two bars sit side-by-side, perfectly centered over the tick mark. If you didn't do this, the bars would overlap.
-- plt.xticks(x, titles, rotation='vertical') for long titles
-- plt.grid(axis='y', alpha=0.7) shows only vertical lines
+- `plt.xticks(x, titles, rotation='vertical')` for long titles
+- `plt.grid(axis='y', alpha=0.7)` shows only vertical lines
 ``` python
 import pandas as pd
 import numpy as np
