@@ -5,7 +5,7 @@
 - df["subject"] = df["subject"].str.strip().str.title() edits the column strings
 - df = df.astype({"price":"float32"}) for type casting
 - df.to_csv("cleaned_udemy_courses.csv",index=False) to save 
-``` python[]
+``` python
 import pandas as pd
 # 1. Load Dataset
 def load_data():
